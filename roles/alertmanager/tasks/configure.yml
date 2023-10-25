@@ -1,0 +1,27 @@
+---
+- name: Configure alertmanager
+  ansible.builtin.template:
+    src: alertmanager.yml.j2
+    dest: "{{ alertmanager_config_dir }}/alertmanager.yml"
+    owner: "{{ alertmanager_user }}"
+    group: "{{ alertmanager_group }}"
+    mode: 0644
+    validate: "{{ alertmanager_bin_dir }}/amtool check-config %s"
+  notify:
+    - reload alertmanager
+
+- name: Install alertmanager systemd service
+  ansible.builtin.template:
+    src: alertmanager.service.j2
+    dest: /etc/systemd/system/alertmanager.service
+    owner: root
+    group: root
+    mode: 0644
+  notify: restart alertmanager
+
+- name: Enable alertmanager systemd service
+  ansible.builtin.systemd:
+    daemon_reload: true
+    name: alertmanager
+    enabled: true
+    state: started

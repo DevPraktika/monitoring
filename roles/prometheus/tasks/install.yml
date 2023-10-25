@@ -1,0 +1,94 @@
+---
+- name: Check if prometheus exist
+  ansible.builtin.stat:
+    path: "{{ prometheus_bin_dir  }}/prometheus"
+  register: __prometheus_present
+
+- name: If prometheus exist get version
+  ansible.builtin.shell:
+    cmd: set -o pipefail && {{ prometheus_bin_dir  }}/prometheus --version | head -1 | cut -d ' ' -f3
+    executable: /bin/bash
+  changed_when: false
+  register: __prometheus_current_version
+  when: __prometheus_present.stat.exists
+
+- name: Create the prometheus group
+  ansible.builtin.group:
+    name: "{{ prometheus_group }}"
+    state: present
+    system: true
+  when: prometheus_group != "root"
+
+- name: Create the prometheus user
+  ansible.builtin.user:
+    name: "{{ prometheus_user }}"
+    groups: "{{ prometheus_group }}"
+    append: true
+    shell: /usr/sbin/nologin
+    system: true
+    create_home: false
+    home: "{{ prometheus_db_dir }}"
+  when: prometheus_user != "root"
+
+- name: Create prometheus data directory
+  ansible.builtin.file:
+    path: "{{ prometheus_db_dir }}"
+    state: directory
+    owner: "{{ prometheus_user }}"
+    group: "{{ prometheus_group }}"
+    mode: 0755
+
+- name: Create prometheus configuration directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ prometheus_user }}"
+    group: "{{ prometheus_group }}"
+    mode: 0750
+  with_items:
+    - "{{ prometheus_config_dir }}"
+    - "{{ prometheus_config_dir }}/rules"
+
+- name: Get prometheus binary
+  when: (not __prometheus_present.stat.exists) or (not __prometheus_current_version.stdout == prometheus_version) or prometheus_force_install
+  block:
+    - name: Download prometheus binary
+      become: false
+      ansible.builtin.get_url:
+        url: "https://github.com/prometheus/prometheus/releases/download/v{{ prometheus_version }}/prometheus-{{ prometheus_version }}.linux-amd64.tar.gz"
+        dest: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64.tar.gz"
+        mode: 0644
+      delegate_to: localhost
+
+    - name: Unpack prometheus binary
+      become: false
+      ansible.builtin.unarchive:
+        src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64.tar.gz"
+        dest: "/tmp"
+        creates: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/prometheus"
+      delegate_to: localhost
+
+    - name: Copy prometheus binary
+      ansible.builtin.copy:
+        src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/{{ item }}"
+        dest: "{{ prometheus_bin_dir  }}/{{ item }}"
+        owner: root
+        group: root
+        mode: 0755
+      with_items:
+        - prometheus
+        - promtool
+      notify: restart prometheus
+
+    - name: Copy official console templates
+      ansible.builtin.copy:
+        src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/{{ item }}"
+        dest: "{{ prometheus_config_dir }}"
+        owner: "{{ prometheus_user }}"
+        group: "{{ prometheus_group }}"
+        mode: 0644
+      with_items:
+        - console_libraries
+        - consoles
+      notify:
+        - restart prometheus

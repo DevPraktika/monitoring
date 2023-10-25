@@ -1,0 +1,12 @@
+groups:
+- name: Patroni alert rules
+  rules:
+  # Alert for any instance a patroni cluster that has not checked in with the DCS
+  - alert: PatroniDcsMissing
+    expr: rate(patroni_dcs_last_seen[1m]) == 0
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Patroni cluster has not checked in with the DCS on {{ $labels.instance }}"
+      description: "Patroni cluster has not checked in with the DCS on {{ $labels.instance }} for more than 5 minutes"

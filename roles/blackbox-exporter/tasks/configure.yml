@@ -1,0 +1,25 @@
+---
+- name: Copy blackbox_exporter config file
+  ansible.builtin.template:
+    src: blackbox_exporter.yml.j2
+    dest: "{{ blackbox_exporter_config_file }}"
+    owner: root
+    group: root
+    mode: 0644
+  notify: restart blackbox_exporter
+
+- name: Install blackbox_exporter systemd service
+  ansible.builtin.template:
+    src: blackbox_exporter.service.j2
+    dest: /etc/systemd/system/blackbox_exporter.service
+    owner: root
+    group: root
+    mode: 0644
+  notify: restart blackbox_exporter
+
+- name: Enable blackbox_exporter systemd service
+  ansible.builtin.systemd:
+    daemon_reload: true
+    name: blackbox_exporter
+    enabled: true
+    state: started

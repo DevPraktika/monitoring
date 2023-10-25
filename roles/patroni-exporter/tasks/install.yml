@@ -1,0 +1,48 @@
+---
+- name: Check if patroni_exporter exist
+  ansible.builtin.stat:
+    path: "{{ patroni_exporter_bin }}"
+  register: __patroni_exporter_present
+
+- name: Create the patroni_exporter group
+  ansible.builtin.group:
+    name: "{{ patroni_exporter_group }}"
+    state: present
+    system: true
+  when: patroni_exporter_group != "root"
+
+- name: Create the patroni_exporter user
+  ansible.builtin.user:
+    name: "{{ patroni_exporter_user }}"
+    groups: "{{ patroni_exporter_group }}"
+    append: true
+    shell: /usr/sbin/nologin
+    system: true
+    create_home: false
+    home: /
+  when: patroni_exporter_user != "root"
+
+- name: Install requierements
+  ansible.builtin.package:
+    name: "{{ patroni_exporter_packages }}"
+    state: present
+
+- name: Get patroni_exporter binary
+  when: (not __patroni_exporter_present.stat.exists) or patroni_exporter_force_install
+  block:
+    - name: Download patroni_exporter binary
+      become: false
+      ansible.builtin.get_url:
+        url: "{{ patroni_exporter_url }}"
+        dest: "/tmp/patroni_exporter.py"
+        mode: 0755
+      delegate_to: localhost
+
+    - name: Copy patroni_exporter binary
+      ansible.builtin.copy:
+        src: "/tmp/patroni_exporter.py"
+        dest: "{{ patroni_exporter_bin }}"
+        owner: root
+        group: root
+        mode: 0755
+      notify: restart patroni_exporter

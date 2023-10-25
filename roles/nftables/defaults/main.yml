@@ -1,0 +1,16 @@
+---
+nftables_input_policy: "accept"
+nftables_forward_policy: "accept"
+nftables_output_policy: "accept"
+
+nftables_input_rules:
+  - "ct state invalid counter drop"
+  - "ct state {established, related} counter accept"
+  - "iif lo accept"
+  - "ip protocol icmp counter accept"
+  - "ip saddr 10.0.10.0/24 counter accept"
+  - "tcp dport 9090 counter accept"
+
+nftables_forward_rules: []
+
+nftables_output_rules: []

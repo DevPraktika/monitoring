@@ -1,0 +1,42 @@
+[Unit]
+Description=Alertmanager
+After=network-online.target
+
+[Service]
+Type=simple
+User={{ alertmanager_user }}
+Group={{ alertmanager_group }}
+
+ExecStart={{ alertmanager_bin_dir }}/alertmanager \
+  --storage.path={{ alertmanager_db_dir }} \
+  --web.listen-address={{ alertmanager_web_listen_address }} \
+  --web.external-url={{ alertmanager_web_external_url }} \
+{% for arg, arg_value in alertmanager_args.items() %}
+{% if not arg_value %}
+  --{{ arg }} \
+{% elif arg_value is string or arg_value is number %}
+  --{{ arg }}={{ arg_value }} \
+{% elif arg_value is mapping %}
+{% for sarg, arg_value_item in arg_value.items() %}
+  --{{ arg }}.{{ sarg }}{% if not arg_value_item is none %}={{ arg_value_item }}{% endif %} \
+{% endfor %}
+{% elif arg_value is sequence %}
+  --{{ arg }}=
+{%- for arg_value_item in arg_value %}
+{{ arg_value_item }}
+{%- if not loop.last %},{% endif %}
+{% endfor %}
+ \
+{% endif %}
+{% endfor %}
+  --config.file={{ alertmanager_config_dir }}/alertmanager.yml
+
+ExecReload=/bin/kill -HUP $MAINPID
+
+
+SyslogIdentifier=alertmanager
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

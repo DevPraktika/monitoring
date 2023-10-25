@@ -1,0 +1,17 @@
+galaxy_info:
+  role_name: postgres_exporter
+  author: "Denis L."
+  description: "Prometheus Postgres Exporter"
+  license: "Apache"
+  min_ansible_version: "2.10"
+  platforms:
+    - name: "Debian"
+      versions:
+        - "bullseye"
+        - "buster"
+  galaxy_tags:
+    - "monitoring"
+    - "prometheus"
+    - "exporter"
+    - "metrics"
+    - "system"

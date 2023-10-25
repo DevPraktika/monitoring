@@ -1,0 +1,59 @@
+---
+- name: Check if blackbox_exporter exist
+  ansible.builtin.stat:
+    path: "{{ blackbox_exporter_bin }}"
+  register: __blackbox_exporter_present
+
+- name: If blackbox_exporter exist get version
+  ansible.builtin.shell:
+    cmd: set -o pipefail && {{ blackbox_exporter_bin }} --version | head -1 | cut -d ' ' -f3
+    executable: /bin/bash
+  changed_when: false
+  register: __blackbox_exporter_current_version
+  when: __blackbox_exporter_present.stat.exists
+
+- name: Create the blackbox_exporter group
+  ansible.builtin.group:
+    name: "{{ blackbox_exporter_group }}"
+    state: present
+    system: true
+  when: blackbox_exporter_group != "root"
+
+- name: Create the blackbox_exporter user
+  ansible.builtin.user:
+    name: "{{ blackbox_exporter_user }}"
+    groups: "{{ blackbox_exporter_group }}"
+    append: true
+    shell: /usr/sbin/nologin
+    system: true
+    create_home: false
+    home: /
+  when: blackbox_exporter_user != "root"
+
+- name: Get blackbox_exporter binary
+  when: (not __blackbox_exporter_present.stat.exists) or (not __blackbox_exporter_current_version.stdout == blackbox_exporter_version)
+  block:
+    - name: Download blackbox_exporter binary
+      become: false
+      ansible.builtin.get_url:
+        url: "https://github.com/prometheus/blackbox_exporter/releases/download/v{{ blackbox_exporter_version }}/blackbox_exporter-{{ blackbox_exporter_version }}.linux-amd64.tar.gz"
+        dest: "/tmp/blackbox_exporter-{{ blackbox_exporter_version }}.linux-amd64.tar.gz"
+        mode: 0644
+      delegate_to: localhost
+
+    - name: Unpack blackbox_exporter binary
+      become: false
+      ansible.builtin.unarchive:
+        src: "/tmp/blackbox_exporter-{{ blackbox_exporter_version }}.linux-amd64.tar.gz"
+        dest: "/tmp"
+        creates: "/tmp/blackbox_exporter-{{ blackbox_exporter_version }}.linux-amd64/blackbox_exporter"
+      delegate_to: localhost
+
+    - name: Copy blackbox_exporter binary
+      ansible.builtin.copy:
+        src: "/tmp/blackbox_exporter-{{ blackbox_exporter_version }}.linux-amd64/blackbox_exporter"
+        dest: "{{ blackbox_exporter_bin }}"
+        owner: root
+        group: root
+        mode: 0755
+      notify: restart blackbox_exporter

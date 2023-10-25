@@ -1,0 +1,25 @@
+[Unit]
+Description=Prometheus Blackbox Exporter
+After=network-online.target
+
+[Service]
+Type=simple
+User={{ blackbox_exporter_user }}
+Group={{ blackbox_exporter_group }}
+AmbientCapabilities=CAP_NET_RAW
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStart={{ blackbox_exporter_bin }} \
+  --config.file={{ blackbox_exporter_config_file }} \
+  --web.listen-address={{ blackbox_exporter_web_listen_address }}
+
+SyslogIdentifier=blackbox_exporter
+KillMode=process
+Restart=always
+RestartSec=5
+StartLimitInterval=0
+
+[Install]
+WantedBy=multi-user.target
+
+
+

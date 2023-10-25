@@ -1,0 +1,6 @@
+OPTIONS="--bind {{ patroni_exporter_bind_address }} \
+         --port {{ patroni_exporter_port }} \
+         --address-family {{ patroni_exporter_address_family }} \
+         --patroni-url {{ patroni_exporter_url_api_endpoint }} \
+         --timeout {{ patroni_exporter_timeout }} \
+         --requests-verify {{ patroni_exporter_requests_verify }}"

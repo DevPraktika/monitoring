@@ -1,0 +1,59 @@
+---
+- name: Check if node_exporter exist
+  ansible.builtin.stat:
+    path: "{{ node_exporter_bin }}"
+  register: __node_exporter_present
+
+- name: If node_exporter exist get version
+  ansible.builtin.shell:
+    cmd: set -o pipefail && {{ node_exporter_bin }} --version | head -1 | cut -d ' ' -f3
+    executable: /bin/bash
+  changed_when: false
+  register: __node_exporter_current_version
+  when: __node_exporter_present.stat.exists
+
+- name: Create the node_exporter group
+  ansible.builtin.group:
+    name: "{{ node_exporter_group }}"
+    state: present
+    system: true
+  when: node_exporter_group != "root"
+
+- name: Create the node_exporter user
+  ansible.builtin.user:
+    name: "{{ node_exporter_user }}"
+    groups: "{{ node_exporter_group }}"
+    append: true
+    shell: /usr/sbin/nologin
+    system: true
+    create_home: false
+    home: /
+  when: node_exporter_user != "root"
+
+- name: Get node_exporter binary
+  when: (not __node_exporter_present.stat.exists) or (not __node_exporter_current_version.stdout == node_exporter_version)
+  block:
+    - name: Download node_exporter binary
+      become: false
+      ansible.builtin.get_url:
+        url: "https://github.com/prometheus/node_exporter/releases/download/v{{ node_exporter_version }}/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz"
+        dest: "/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz"
+        mode: 0644
+      delegate_to: localhost
+
+    - name: Unpack node_exporter binary
+      become: false
+      ansible.builtin.unarchive:
+        src: "/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz"
+        dest: "/tmp"
+        creates: "/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64/node_exporter"
+      delegate_to: localhost
+
+    - name: Copy node_exporter binary
+      ansible.builtin.copy:
+        src: "/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64/node_exporter"
+        dest: "{{ node_exporter_bin }}"
+        owner: root
+        group: root
+        mode: 0755
+      notify: restart node_exporter

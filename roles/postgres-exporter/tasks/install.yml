@@ -1,0 +1,62 @@
+---
+- name: Check if postgres_exporter exist
+  ansible.builtin.stat:
+    path: "{{ postgres_exporter_bin }}"
+  register: __postgres_exporter_present
+
+- name: If postgres_exporter exist get version
+  ansible.builtin.shell:
+    cmd: set -o pipefail && {{ postgres_exporter_bin }} --version | head -1 | cut -d ' ' -f3
+    executable: /bin/bash
+  changed_when: false
+  register: __postgres_exporter_current_version
+  when: __postgres_exporter_present.stat.exists
+
+- name: Check if user exists
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ postgres_exporter_user }}"
+    fail_key: false
+  register: __postgres_exporter_check_user
+
+- name: Check if group exists
+  ansible.builtin.getent:
+    database: group
+    key: "{{ postgres_exporter_group }}"
+    fail_key: false
+  register: __postgres_exporter_check_group
+
+- name: Test if postgres_exporter user exist
+  ansible.builtin.assert:
+    that:
+      - __postgres_exporter_check_user.ansible_facts.getent_passwd.{{ postgres_exporter_user }} != None
+      - __postgres_exporter_check_group.ansible_facts.getent_group.{{ postgres_exporter_group }} != None
+    fail_msg: "User or group not present."
+
+- name: Get postgres_exporter binary
+  when: (not __postgres_exporter_present.stat.exists) or (not __postgres_exporter_current_version.stdout == postgres_exporter_version)
+  block:
+    - name: Download postgres_exporter binary
+      become: false
+      ansible.builtin.get_url:
+        url: "https://github.com/prometheus-community/postgres_exporter/releases/download/v{{ postgres_exporter_version }}/postgres_exporter-{{ postgres_exporter_version }}.linux-amd64.tar.gz"
+        dest: "/tmp/postgres_exporter-{{ postgres_exporter_version }}.linux-amd64.tar.gz"
+        mode: 0644
+      delegate_to: localhost
+
+    - name: Unpack postgres_exporter binary
+      become: false
+      ansible.builtin.unarchive:
+        src: "/tmp/postgres_exporter-{{ postgres_exporter_version }}.linux-amd64.tar.gz"
+        dest: "/tmp"
+        creates: "/tmp/postgres_exporter-{{ postgres_exporter_version }}.linux-amd64/postgres_exporter"
+      delegate_to: localhost
+
+    - name: Copy postgres_exporter binary
+      ansible.builtin.copy:
+        src: "/tmp/postgres_exporter-{{ postgres_exporter_version }}.linux-amd64/postgres_exporter"
+        dest: "{{ postgres_exporter_bin }}"
+        owner: root
+        group: root
+        mode: 0755
+      notify: restart postgres_exporter

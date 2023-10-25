@@ -1,0 +1,18 @@
+[Unit]
+Description=Prometheus Patroni Exporter
+After=network-online.target
+
+[Service]
+Type=simple
+User={{ patroni_exporter_user }}
+Group={{ patroni_exporter_group }}
+EnvironmentFile={{ patroni_exporter_config_file }}
+ExecStart=/usr/bin/python3 {{ patroni_exporter_bin }} $OPTIONS
+
+SyslogIdentifier=patroni_exporter
+Restart=always
+RestartSec=1
+StartLimitInterval=0
+
+[Install]
+WantedBy=multi-user.target

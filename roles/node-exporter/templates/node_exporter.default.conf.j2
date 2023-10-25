@@ -1,0 +1,6 @@
+OPTIONS="--collector.textfile.directory={{ node_exporter_textfile_dir }} \
+{% for opt in node_exporter_options %}
+         --{{ opt }} \
+{% endfor %}
+         --web.listen-address={{ node_exporter_web_listen_address }} \
+         --web.telemetry-path={{ node_exporter_web_telemetry_path }}"

@@ -1,0 +1,12 @@
+groups:
+- name: etcd alert rules
+  rules:
+  # Alert for etcd cluster when no Leader
+  - alert: EtcdNoLeader
+    expr: etcd_server_has_leader == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Etcd no Leader on cluster {{ $labels.job }}"
+      description: "Etcd cluster {{ $labels.job }}: member {{ $labels.instance }} has no leader\n  VALUE = {{ $value }}"

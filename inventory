@@ -1,0 +1,27 @@
+# HAProxy load balancing servers
+[balancers]
+10.0.10.2
+
+# etcd clusters nodes
+[etcd_cluster]
+10.0.10.3
+10.0.10.4
+10.0.10.5
+
+# PostgreSQL clusters nodes
+[postgres_cluster]
+10.0.10.6
+10.0.10.7
+
+# Prometheus, Alertmanager, Blackbox
+[prometheus]
+10.0.10.8
+
+[ssh_proxied:children]
+balancers
+etcd_cluster
+postgres_cluster
+prometheus
+
+[ssh_proxied:vars]
+ansible_ssh_common_args='-o ProxyCommand="ssh -W %h:%p denis@77.105.185.88"'

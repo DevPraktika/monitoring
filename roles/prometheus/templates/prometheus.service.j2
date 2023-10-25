@@ -1,0 +1,43 @@
+[Unit]
+Description=Prometheus
+After=network-online.target
+
+[Service]
+Type=simple
+User={{ prometheus_user }}
+Group={{ prometheus_group }}
+
+ExecStart={{ prometheus_bin_dir }}/prometheus \
+  --storage.tsdb.path={{ prometheus_db_dir }} \
+  --web.console.libraries={{ prometheus_config_dir }}/console_libraries \
+  --web.console.templates={{ prometheus_config_dir }}/consoles \
+  --web.listen-address={{ prometheus_web_listen_address }} \
+  --web.external-url={{ prometheus_web_external_url }} \
+{% for arg, arg_value in prometheus_args.items() %}
+{% if not arg_value %}
+  --{{ arg }} \
+{% elif arg_value is string or arg_value is number %}
+  --{{ arg }}={{ arg_value }} \
+{% elif arg_value is mapping %}
+{% for sarg, arg_value_item in arg_value.items() %}
+  --{{ arg }}.{{ sarg }}{% if not arg_value_item is none %}={{ arg_value_item }}{% endif %} \
+{% endfor %}
+{% elif arg_value is sequence %}
+  --{{ arg }}=
+{%- for arg_value_item in arg_value %}
+{{ arg_value_item }}
+{%- if not loop.last %},{% endif %}
+{% endfor %}
+ \
+{% endif %}
+{% endfor %}
+  --config.file={{ prometheus_config_dir }}/prometheus.yml
+
+ExecReload=/bin/kill -HUP $MAINPID
+
+
+SyslogIdentifier=prometheus
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

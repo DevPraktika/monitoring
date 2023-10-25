@@ -1,0 +1,5 @@
+---
+patroni_exporter_packages:
+  - python3-requests
+  - python3-prometheus-client
+  - python3-dateutil

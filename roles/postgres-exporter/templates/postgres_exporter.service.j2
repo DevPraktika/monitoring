@@ -1,0 +1,18 @@
+[Unit]
+Description=Prometheus Postgres Exporter
+After=network-online.target
+
+[Service]
+Type=simple
+User={{ postgres_exporter_user }}
+Group={{ postgres_exporter_group }}
+EnvironmentFile={{ postgres_exporter_config_file }}
+ExecStart={{ postgres_exporter_bin }} $OPTIONS
+
+SyslogIdentifier=postgres_exporter
+Restart=always
+RestartSec=5
+StartLimitInterval=0
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,18 @@
+---
+postgres_exporter_version: "0.14.0"
+
+postgres_exporter_user: "postgres"
+postgres_exporter_group: "{{ postgres_exporter_user }}"
+
+postgres_exporter_bin: /usr/local/bin/postgres_exporter
+postgres_exporter_config_file: /etc/default/postgres_exporter
+
+postgres_exporter_data_source_name: "user=postgres host=/var/run/postgresql/ sslmode=disable"
+
+postgres_exporter_web_listen_address: "0.0.0.0:9187"
+postgres_exporter_web_telemetry_path: "/metrics"
+
+postgres_exporter_log_level: "info"
+postgres_exporter_log_format: "logfmt"
+
+postgres_exporter_options: []

@@ -1,0 +1,17 @@
+---
+patroni_exporter_url: "https://raw.githubusercontent.com/Showmax/patroni-exporter/master/patroni_exporter.py"
+
+patroni_exporter_user: patroni-exporter
+patroni_exporter_group: "{{ patroni_exporter_user }}"
+
+patroni_exporter_bin: /usr/local/bin/patroni_exporter.py
+patroni_exporter_config_file: /etc/default/patroni_exporter
+patroni_exporter_force_install: false
+
+patroni_exporter_url_api_endpoint: "http://localhost:8008/patroni"
+
+patroni_exporter_bind_address: "0.0.0.0"
+patroni_exporter_port: 9547
+patroni_exporter_address_family: AF_INET
+patroni_exporter_timeout: 5
+patroni_exporter_requests_verify: true

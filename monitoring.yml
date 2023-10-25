@@ -1,0 +1,57 @@
+---
+- name: Configure firewall
+  hosts: prometheus
+  become: true
+  roles:
+    - nftables
+  tags:
+    - firewall
+
+- name: Deploy node_exporter
+  hosts: all
+  become: true
+  roles:
+    - node-exporter
+  tags:
+    - node-exporter
+
+- name: Deploy blackbox_exporter
+  hosts: prometheus
+  become: true
+  roles:
+    - blackbox-exporter
+  tags:
+    - blackbox-exporter
+
+- name: Deploy patroni_exporter
+  hosts: postgres_cluster
+  become: true
+  roles:
+    - role: patroni-exporter
+      when: not skip_patroni_exporter | default(false) | bool
+  tags:
+    - patroni-exporter
+
+- name: Deploy postgres_exporter
+  hosts: postgres_cluster
+  become: true
+  roles:
+    - postgres-exporter
+  tags:
+    - postgres-exporter
+
+- name: Deploy prometheus
+  hosts: prometheus
+  become: true
+  roles:
+    - prometheus
+  tags:
+    - prometheus
+
+- name: Deploy alertmanager
+  hosts: prometheus
+  become: true
+  roles:
+    - alertmanager
+  tags:
+    - alertmanager

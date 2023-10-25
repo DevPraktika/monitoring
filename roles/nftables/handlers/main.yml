@@ -1,0 +1,8 @@
+---
+- name: Restart nftables
+  listen: "restart nftables"
+  become: true
+  ansible.builtin.systemd:
+    daemon_reload: true
+    name: nftables
+    state: restarted

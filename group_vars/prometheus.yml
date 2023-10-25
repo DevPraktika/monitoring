@@ -1,0 +1,107 @@
+# prometheus_force_install: true
+# alertmanager_force_install: true
+
+# Firewall
+nftables_input_policy: "drop"
+nftables_forward_policy: "drop"
+nftables_input_rules:
+  - "ct state invalid counter drop"
+  - "ct state {established, related} counter accept"
+  - "iif lo accept"
+  - "ip protocol icmp counter accept"
+  - "ip saddr 10.0.10.0/24 counter accept"
+  - "tcp dport 9090 counter accept"
+  - "tcp dport 9093 counter accept"
+
+# Prometheus configure
+prometheus_web_external_url: "http://77.105.185.34:9090/"
+prometheus_config:
+  global:
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    evaluation_interval: 15s
+  alerting:
+    targets:
+      group_name: prometheus
+      port: 9093
+  scrape_configs:
+    - job_name: "prometheus"
+      static_configs:
+        - targets: "{{ groups['prometheus']|map('regex_replace', '^(.*)$','\\1:9090')|list }}"
+    - job_name: "node-exporter"
+      static_configs:
+        - targets: "{{ groups['all']|map('regex_replace', '^(.*)$','\\1:9100')|list }}"
+    - job_name: "etcd-exporter"
+      static_configs:
+        - targets: "{{ groups['etcd_cluster']|map('regex_replace', '^(.*)$','\\1:2379')|list }}"
+    - job_name: "postgres-exporter"
+      static_configs:
+        - targets: "{{ groups['postgres_cluster']|map('regex_replace', '^(.*)$','\\1:9187')|list }}"
+    - job_name: "patroni-exporter"
+      static_configs:
+        - targets: "{{ groups['postgres_cluster']|map('regex_replace', '^(.*)$','\\1:8008')|list }}"
+    - job_name: "blackbox-exporter-http"
+      metrics_path: /probe
+      params:
+        module:
+          - http_2xx_with_host
+      static_configs:
+        - targets:
+          - http://91.185.85.213/WeatherForecast
+      relabel_configs:
+        - source_labels: [__address__]
+          target_label: __param_target
+        - source_labels: [__param_target]
+          target_label: instance
+        - replacement: localhost:9115
+          target_label: __address__
+
+blackbox_exporter_configuration_modules:
+  http_2xx_with_host:
+    prober: http
+    timeout: 5s
+    http:
+      valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+      valid_status_codes: []  # Defaults to 2xx
+      method: GET
+      headers:
+        Host: api.student65.sre
+      follow_redirects: true
+      fail_if_ssl: false
+      fail_if_not_ssl: false
+#      fail_if_body_matches_regexp:
+#        - "Could not connect to database"
+#      fail_if_body_not_matches_regexp:
+#        - "Download the latest version here"
+#      fail_if_header_matches: # Verifies that no cookies are set
+#        - header: Set-Cookie
+#          allow_missing: true
+#          regexp: '.*'
+#      fail_if_header_not_matches:
+#        - header: Access-Control-Allow-Origin
+#          regexp: '(\*|example\.com)'
+      tls_config:
+        insecure_skip_verify: false
+      preferred_ip_protocol: "ip4" # defaults to "ip6"
+      ip_protocol_fallback: false  # no fallback to "ip6"
+
+# Alertmanager configure
+alertmanager_web_external_url: "http://77.105.185.34:9093/"
+alertmanager_config:
+  global:
+    resolve_timeout: 5m
+  route:
+    group_by: ['alertname']
+    group_wait: 30s
+    group_interval: 5m
+    repeat_interval: 1h
+    receiver: 'email'
+  receivers:
+    - name: 'email'
+      email_configs:
+      - to: "{{ lookup('env', 'EMAIL_ACCOUNT') }}"
+        from: "{{ lookup('env', 'EMAIL_ACCOUNT') }}"
+        smarthost: smtp.rambler.ru:587
+        auth_username: "{{ lookup('env', 'EMAIL_ACCOUNT') }}"
+        auth_identity: "{{ lookup('env', 'EMAIL_ACCOUNT') }}"
+        auth_password: "{{ lookup('env', 'EMAIL_AUTH_TOKEN') }}"

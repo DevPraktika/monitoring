@@ -1,0 +1,12 @@
+groups:
+- name: Blackbox alert rules
+  rules:
+  # Alert for any instance that has a median probe latency >1s.
+  - alert: BlackboxHighProbeLatency
+    expr: quantile_over_time(0.5, probe_duration_seconds[10m]) > 1
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High probe latency on {{ $labels.instance }}"
+      description: "{{ $labels.instance }} has a median probe latency above 1s (current value: {{ $value }}s)"

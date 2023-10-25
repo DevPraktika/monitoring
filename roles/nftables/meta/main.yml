@@ -1,0 +1,15 @@
+galaxy_info:
+  role_name: nftables
+  author: "Denis L."
+  description: "nftables"
+  license: "Apache"
+  min_ansible_version: "2.10"
+  platforms:
+    - name: "Debian"
+      versions:
+        - "bullseye"
+        - "buster"
+  galaxy_tags:
+    - "nftables"
+    - "firewall"
+    - "system"

@@ -1,0 +1,25 @@
+---
+- name: Copy postgres_exporter config file
+  ansible.builtin.template:
+    src: postgres_exporter.default.conf.j2
+    dest: "{{ postgres_exporter_config_file }}"
+    owner: root
+    group: root
+    mode: 0644
+  notify: restart postgres_exporter
+
+- name: Install postgres_exporter systemd service
+  ansible.builtin.template:
+    src: postgres_exporter.service.j2
+    dest: /etc/systemd/system/postgres_exporter.service
+    owner: root
+    group: root
+    mode: 0644
+  notify: restart postgres_exporter
+
+- name: Enable postgres_exporter systemd service
+  ansible.builtin.systemd:
+    daemon_reload: true
+    name: postgres_exporter
+    enabled: true
+    state: started

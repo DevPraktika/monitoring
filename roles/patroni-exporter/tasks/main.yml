@@ -1,0 +1,12 @@
+---
+- name: Check
+  ansible.builtin.include_tasks:
+    file: check.yml
+
+- name: Install
+  ansible.builtin.include_tasks:
+    file: install.yml
+
+- name: Configure
+  ansible.builtin.include_tasks:
+    file: configure.yml

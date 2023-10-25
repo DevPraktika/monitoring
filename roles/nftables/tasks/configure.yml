@@ -1,0 +1,16 @@
+---
+- name: Copy nftables config file
+  ansible.builtin.template:
+    src: nftables.conf.j2
+    dest: /etc/nftables.conf
+    owner: root
+    group: root
+    mode: 0755
+  notify: restart nftables
+
+- name: Enable nftables systemd service
+  ansible.builtin.systemd:
+    daemon_reload: true
+    name: nftables
+    enabled: true
+    state: started

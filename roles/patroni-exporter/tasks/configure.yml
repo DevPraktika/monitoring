@@ -1,0 +1,25 @@
+---
+- name: Copy patroni_exporter config file
+  ansible.builtin.template:
+    src: patroni_exporter.default.conf.j2
+    dest: "{{ patroni_exporter_config_file }}"
+    owner: root
+    group: root
+    mode: 0644
+  notify: restart patroni_exporter
+
+- name: Install patroni_exporter systemd service
+  ansible.builtin.template:
+    src: patroni_exporter.service.j2
+    dest: /etc/systemd/system/patroni_exporter.service
+    owner: root
+    group: root
+    mode: 0644
+  notify: restart patroni_exporter
+
+- name: Enable patroni_exporter systemd service
+  ansible.builtin.systemd:
+    daemon_reload: true
+    name: patroni_exporter
+    enabled: true
+    state: started
